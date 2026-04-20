@@ -1,3 +1,5 @@
+<img width="4400" height="657" alt="Designer (5)" src="https://github.com/user-attachments/assets/a51d37d9-4a4a-4fd4-ac30-547a2d23f278" />
+
 # GitHub Copilot Advanced Labs
 
 A hands-on workshop series for mastering GitHub Copilot across real-world development scenarios. Each lab is approximately **1 hour** and builds on practical, project-based exercises.
