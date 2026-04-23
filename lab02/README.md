@@ -17,6 +17,7 @@
 | **4** | Coverage gap fill | 10 min | Agent Mode (VS Code) + CLI `task` agent |
 | **5** | CI gate + Agentic Workflows | 10 min | GitHub Actions + `gh aw` |
 | **6** | GitHub Copilot CLI for testing | 10 min | `gh copilot explain` / `suggest` / `task` |
+| **7** | E2E testing with MCP servers | 15 min | Playwright MCP + Agent Mode |
 
 ---
 
@@ -302,6 +303,132 @@ gh copilot task "Coverage is still below 80%. Check the remaining uncovered line
 
 ---
 
+## Part 7 — E2E Testing with MCP Servers (15 min)
+
+So far you've tested at the **unit level** — mocking dependencies and testing functions in isolation. Now let's go beyond unit tests using **MCP (Model Context Protocol) servers** to run **end-to-end browser tests** and **API tests** directly from Agent Mode.
+
+### What is MCP?
+
+MCP servers give Copilot **tools** it can call — like opening a browser, clicking buttons, or making HTTP requests. For testing, this means the agent can interact with a running application just like a real user.
+
+### Setup
+
+1. **Install Playwright MCP:**
+   ```bash
+   npm install -g @anthropic/playwright-mcp
+   ```
+
+2. **Configure in VS Code:** Add to your `.vscode/mcp.json` (or user settings):
+   ```json
+   {
+     "mcp": {
+       "servers": {
+         "playwright": {
+           "command": "npx",
+           "args": ["@anthropic/playwright-mcp@latest"]
+         }
+       }
+     }
+   }
+   ```
+
+3. **Restart VS Code** and verify Playwright appears in Agent Mode's tool list (look for the tools icon).
+
+### 7a: Discover available MCP tools (2 min)
+
+Switch to **Agent Mode** and ask:
+
+```
+What Playwright MCP tools do you have available? List them briefly.
+```
+
+You should see tools like `browser_navigate`, `browser_click`, `browser_snapshot`, `browser_type`, etc. These are the building blocks for browser-based testing.
+
+### 7b: Exploratory API testing with Playwright MCP (5 min)
+
+`order_processor.py` has HTTP calls to a payment API. Let's use MCP to test an API endpoint interactively.
+
+Ask Agent Mode:
+
+```
+Use Playwright MCP to navigate to https://httpbin.org/post and take a snapshot.
+Then explain what this endpoint does and how I could use it
+as a mock payment API for testing order_processor.py.
+```
+
+**What to observe:**
+- The agent calls `browser_navigate` → `browser_snapshot` in sequence
+- Snapshots return an **accessibility tree** (text-based), not a screenshot — ideal for AI analysis
+- The agent can reason about what it sees and suggest testing strategies
+
+### 7c: E2E test flow with MCP (5 min)
+
+Now let's combine MCP with the code you already tested. Ask Agent Mode:
+
+```
+I want to verify my order processing system works end-to-end.
+
+1. Use Playwright MCP to make a POST request to https://httpbin.org/post
+   with a JSON body: {"order_id": "ORD-001", "amount": 99.99}
+2. Take a snapshot of the response page
+3. Verify the response shows the data was received correctly
+4. Based on this, write a pytest test in tests/test_e2e_mcp.py that
+   uses httpbin.org as a real payment endpoint (no mocking)
+   to test process_order() with a live HTTP call
+```
+
+**Key insight:** MCP lets you **explore first, codify later**. The agent discovers how the API behaves interactively, then generates repeatable pytest tests from its findings.
+
+### 7d: Accessibility audit (3 min)
+
+Playwright MCP's snapshot returns an accessibility tree — making it a natural **accessibility auditing tool**. Try it on any web page:
+
+```
+Use Playwright MCP to navigate to https://example.com and take a snapshot.
+Analyze the accessibility tree:
+- Is there a proper heading hierarchy?
+- Are all links descriptive?
+- Are ARIA roles used correctly?
+List any issues.
+```
+
+### Adding more MCP servers (optional)
+
+You can extend your testing toolkit with additional MCP servers:
+
+| MCP Server | Use Case | Install |
+|-----------|----------|----------|
+| `@anthropic/playwright-mcp` | Browser E2E & a11y testing | `npx @anthropic/playwright-mcp@latest` |
+| `@anthropic/fetch-mcp` | Dedicated HTTP/API testing | `npx @anthropic/fetch-mcp@latest` |
+
+To add **Fetch MCP**, add to your MCP config:
+```json
+{
+  "fetch": {
+    "command": "npx",
+    "args": ["@anthropic/fetch-mcp@latest"]
+  }
+}
+```
+
+Then ask Agent Mode:
+```
+Use the fetch tool to POST to https://httpbin.org/post with
+{"test": true} and verify the response.
+```
+
+### Takeaway
+
+MCP servers turn Agent Mode into a **full testing platform**:
+- **Explore** interactively with browser/API tools
+- **Discover** bugs and edge cases in real time
+- **Generate** repeatable pytest tests from findings
+- **Verify** fixes immediately through the same tools
+
+This is the **explore → find → codify** pattern — use MCP for discovery, then lock it down as automated tests.
+
+---
+
 ## Final Check
 
 Run the full suite with coverage:
@@ -322,6 +449,7 @@ pytest tests/ --cov=order_processor --cov-report=term-missing -v
 - ✅ CI coverage gate with `--cov-fail-under` to make quality a hard requirement
 - ✅ GitHub Agentic Workflows for continuous, automated test improvement
 - ✅ GitHub Copilot CLI (`explain`, `suggest`, `task`) for terminal-first testing workflows
+- ✅ MCP servers (Playwright, Fetch) for E2E browser testing and API validation from Agent Mode
 
 ---
 
