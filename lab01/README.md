@@ -1,6 +1,6 @@
 # Lab 01 — Code Generation Fundamentals
 
-**Duration:** ~1 hour  
+**Duration:** ~1 hour (plus ~10 min for initial setup)  
 **SDLC Phase:** Code  
 **Autonomy Level:** 🟢 Human writes, Copilot suggests
 
@@ -64,6 +64,14 @@ Inline completions are the "ghost text" that appears as you type. This is Copilo
 - Copilot reads the surrounding code — the more context (docstrings, type hints, method names), the better the suggestions
 - If the suggestion is wrong, keep typing — Copilot will adjust
 - Press `Alt+]` / `Alt+[` to cycle through alternative suggestions
+
+### ✅ Verify
+
+Run the existing tests to confirm your TODO implementations work:
+```bash
+pytest tests/ -v
+```
+All tests should pass. If any fail, review your implementations and try again.
 
 ---
 
@@ -199,9 +207,20 @@ gh extension install github/gh-copilot
    gh copilot explain "Why is @property used on is_overdue instead of a regular method?"
    ```
 
+4. **Git workflow suggestion:**
+   ```bash
+   gh copilot suggest "create a new branch called lab01-solution, stage my changes, and commit with a descriptive message"
+   ```
+   Copilot will give you the exact git commands. Review them before running.
+
 ---
 
 ## Checkpoint
+
+Run a final verification to confirm everything works:
+```bash
+pytest tests/ -v
+```
 
 By now you should have:
 - [ ] Completed all TODO methods using inline completions
@@ -209,6 +228,7 @@ By now you should have:
 - [ ] Used all 4 slash commands (`/explain`, `/doc`, `/tests`, `/fix`)
 - [ ] Experienced the difference between vague and specific prompts
 - [ ] Tried `gh copilot explain` and `suggest`
+- [ ] All tests passing ✅
 
 ---
 

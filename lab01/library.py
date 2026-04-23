@@ -143,11 +143,12 @@ class Library:
         """Return a book. Returns status dict."""
         for loan in self._loans:
             if loan.loan_id == loan_id and not loan.is_returned:
+                was_overdue = loan.is_overdue
                 loan.return_date = date.today()
                 book = self.get_book(loan.book_isbn)
                 if book:
                     book.copies_available += 1
-                return {"status": "ok", "was_overdue": loan.is_overdue}
+                return {"status": "ok", "was_overdue": was_overdue}
         return {"status": "error", "message": "Loan not found or already returned"}
 
     # TODO: Add a method to get all overdue loans
