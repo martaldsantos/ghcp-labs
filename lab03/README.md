@@ -344,9 +344,43 @@ Create a skill that automatically activates when Copilot detects debugging-relat
 
 </details>
 
+### Task C — Think Like an Enterprise (5 min)
+
+In a real enterprise, repo-specific agents are not just a nice-to-have — they're a force multiplier. Consider the `inventory.py` codebase as if it were a production inventory service maintained by a team of 10.
+
+**When repo-specific agents add value:**
+
+| Benefit | Example for this repo |
+|---------|----------------------|
+| **Domain-encoded workflows** | An agent that knows "reorder thresholds depend on supplier lead times" — not just generic Python debugging |
+| **Guardrails** | "Never modify pricing logic without a corresponding test" enforced by agent constraints |
+| **Onboarding** | New engineers type `@bug-hunter` instead of reading 50 pages of runbooks |
+| **Consistency** | Everyone follows the same diagnostic steps: run integration tests → check event log → isolate the method |
+| **Tribal knowledge capture** | The agent *is* the runbook — it evolves with the code, not a stale wiki page |
+
+**When it's overkill:**
+
+- Trivial repos with a single maintainer who already knows the codebase
+- Cases where generic Copilot prompting (`/fix`, `@workspace`) covers 95% of tasks
+- If nobody maintains the agent definition — stale instructions are worse than none
+
+**Enterprise best practices for repo agents:**
+
+1. **Scope tightly** — one agent per workflow (debugging, migration, deployment), not one mega-agent
+2. **Version with the code** — the `.agent.md` lives in the repo and evolves with the codebase
+3. **Reference actual paths/commands** — e.g., `pytest tests/integration/ -v` rather than generic advice
+4. **Pair with a SKILL file** — for reusable domain knowledge the agent can draw on
+5. **Add tool restrictions** — "Avoid: deleting files, modifying test fixtures" prevents costly mistakes in CI/prod-adjacent contexts
+
+#### Discussion questions
+
+- Would you create one `bug-hunter` agent for the whole org, or one per service repo? Why?
+- How would you handle agent drift as the codebase evolves — CI checks? Code review on `.agent.md` changes?
+- What sensitive information should you *never* put in an agent file (secrets, internal URLs)?
+
 ### Takeaway
 
-Custom agents and skills let you **encode team debugging expertise** into reusable Copilot extensions. An agent automates the workflow ("find bugs, run tests, fix"), while a skill provides the knowledge ("common Python bug patterns"). Together, they make every team member as effective as your best debugger.
+Custom agents and skills let you **encode team debugging expertise** into reusable Copilot extensions. An agent automates the workflow ("find bugs, run tests, fix"), while a skill provides the knowledge ("common Python bug patterns"). Together, they make every team member as effective as your best debugger. In enterprise settings, repo-specific agents are a high-leverage investment — they capture tribal knowledge, enforce guardrails, and scale expertise across the team — as long as they're maintained alongside the code they target.
 
 ---
 
