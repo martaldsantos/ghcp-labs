@@ -15,7 +15,7 @@
 | **2** | Fixtures & Parametrize | 15 min | Chat + inline suggestions |
 | **3** | Async with `AsyncMock` | 15 min | Chat with explicit prompt |
 | **4** | Coverage gap fill | 10 min | Agent Mode (VS Code) + `copilot` CLI |
-| **5** | CI gate + Agentic Workflows | 10 min | GitHub Actions + `gh aw` |
+| **5** | CI gate + Copilot Coding Agent | 10 min | GitHub Actions + coding agent |
 | **6** | GitHub Copilot CLI for testing | 10 min | `copilot` interactive + programmatic |
 | **7** | E2E testing with MCP servers | 15 min | Playwright MCP + Agent Mode |
 
@@ -57,7 +57,7 @@ Open `order_processor.py` and look at `process_order()`. It has **5 code paths**
 Fill in the 5 test methods in `tests/test_process_order.py` to cover all paths.
 
 **Key techniques:**
-- `unittest.mock.patch` to mock `requests.post` for the payment API
+- `unittest.mock.patch` to mock `httpx.post` for the payment API
 - In-memory SQLite (`:memory:`) for the DB — `save_order` accepts a `conn` parameter
 - Create the `orders` table in your test setup
 
@@ -66,9 +66,9 @@ Fill in the 5 test methods in `tests/test_process_order.py` to cover all paths.
 <details>
 <summary>💡 Hints (click to expand)</summary>
 
-- Patch at the import location: `@patch("order_processor.requests.post")` not `@patch("requests.post")`
-- For `raise_for_status` on 402: `mock_resp.raise_for_status.side_effect = requests.HTTPError("402")`
-- For timeout: `mock_post.side_effect = requests.Timeout()`
+- Patch at the import location: `@patch("order_processor.httpx.post")` not `@patch("httpx.post")`
+- For `raise_for_status` on 402: `mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError("402", request=mock_request, response=mock_resp)`
+- For timeout: `mock_post.side_effect = httpx.TimeoutException("timed out")`
 
 </details>
 
@@ -127,20 +127,21 @@ pytest tests/test_validation.py -v
 
 **File:** `tests/test_notify.py`
 
-`notify_customer()` is fully async with `aiohttp`. This forces you to use `AsyncMock` and `pytest-asyncio`.
+`notify_customer()` is fully async with `httpx.AsyncClient`. This forces you to use `AsyncMock` and `pytest-asyncio`.
 
 ### Your tasks
 
-1. **Successful notification:** Mock the session, set `status = 200`, assert `True`
-2. **Non-200 response:** Set `status = 500`, assert `False`
-3. **Network error:** Set `side_effect = aiohttp.ClientError()`, assert `False`
+1. **Successful notification:** Mock the client, set `status_code = 200`, assert `True`
+2. **Non-200 response:** Set `status_code = 500`, assert `False`
+3. **Network error:** Set `side_effect = httpx.ConnectError("...")`, assert `False`
 
 <details>
 <summary>💡 Hints (click to expand)</summary>
 
 - `AsyncMock` is in `unittest.mock` from Python 3.8+
-- Mock the context manager: `mock_session.post.return_value.__aenter__.return_value.status = 200`
+- Mock the response: `mock_response = MagicMock(); mock_response.status_code = 200; mock_client.post.return_value = mock_response`
 - Use `assert_awaited_once_with()` not `assert_called_once_with()` for async
+- No context manager dance needed — `httpx.AsyncClient.post()` returns the response directly
 
 </details>
 
@@ -194,23 +195,27 @@ pytest tests/ --cov=order_processor --cov-report=term-missing --cov-fail-under=8
 
 If it fails, go back and add more tests until you pass the gate.
 
-### 5b: Agentic Workflows (bonus)
+### 5b: Copilot Coding Agent (bonus)
 
-If your repo has a `.github/workflows/improve-tests.md`, this is a GitHub Agentic Workflow definition that automatically finds and fills coverage gaps. (This file is not included in the lab — you can create one as an exercise.)
+GitHub's **Copilot coding agent** can automatically find and fill coverage gaps. You trigger it by assigning Copilot to a GitHub Issue or asking it in a PR review.
 
-To try it locally (requires `gh` CLI):
+**Try it:**
+1. Create a GitHub Issue titled: _"Increase test coverage of order_processor.py to 90%"_
+2. Assign `@github-copilot` (or use the "Copilot" button in the issue sidebar)
+3. Copilot opens a PR with new tests, runs CI, and iterates until the coverage target is met
 
+Alternatively, from the CLI:
 ```bash
-gh extension install github/gh-aw
-gh aw compile .github/workflows/improve-tests.md
-gh aw run improve-tests
+gh copilot "Look at lab02/order_processor.py and add tests to reach 90% coverage"
 ```
+
+> **Note:** The coding agent requires a GitHub Copilot Enterprise or Pro+ plan and repository-level enablement.
 
 <details>
 <summary>💡 Hints (click to expand)</summary>
 
 - `--cov-fail-under=80` exits with code 2 if coverage is below threshold
-- The Agentic Workflow needs `gh extension install github/gh-aw` to compile and run locally
+- The coding agent works best with a CI workflow that runs tests — it uses the CI results as feedback
 
 </details>
 
@@ -247,11 +252,11 @@ copilot
 Once inside the interactive session, try:
 
 ```
-What does @patch('order_processor.requests.post') do and why not @patch('requests.post')?
+What does @patch('order_processor.httpx.post') do and why not @patch('httpx.post')?
 ```
 
 ```
-What does mock_session.post.return_value.__aenter__.return_value.status = 200 mean in Python?
+What does mock_client.post.return_value.status_code = 200 mean in Python testing with httpx?
 ```
 
 **When to use:** Onboarding to a new codebase, understanding unfamiliar patterns, quick reference.
@@ -445,13 +450,13 @@ pytest tests/ --cov=order_processor --cov-report=term-missing -v
 
 ## Lab Complete! Here's What You Practiced:
 
-- ✅ Mocking HTTP clients and DB layers with `unittest.mock.patch`
+- ✅ Mocking HTTP clients (`httpx`) and DB layers with `unittest.mock.patch`
 - ✅ Fixture factories with `conftest.py` for clean, reusable test data
 - ✅ `pytest.mark.parametrize` for data-driven edge case coverage
 - ✅ Async testing with `AsyncMock` and `pytest-asyncio`
 - ✅ Copilot Agent Mode (VS Code) and CLI `task` agent to identify and fill coverage gaps autonomously
 - ✅ CI coverage gate with `--cov-fail-under` to make quality a hard requirement
-- ✅ GitHub Agentic Workflows for continuous, automated test improvement
+- ✅ GitHub Copilot coding agent for continuous, automated test improvement
 - ✅ GitHub Copilot CLI (`copilot`) for interactive and programmatic terminal-first testing workflows
 - ✅ MCP servers (Playwright, Fetch) for E2E browser testing and API validation from Agent Mode
 
@@ -472,6 +477,6 @@ Solutions for each part are in the `solutions/` folder:
 - The starter code is intentionally injectable — all external deps (DB, HTTP, async session) accept optional parameters so they're easy to mock without monkeypatching globals
 - `process_order()` has 5 distinct code paths — ideal for Part 1
 - `validate_order()` has 8+ conditions — ideal for parametrize in Part 2
-- `notify_customer()` is fully async with aiohttp — forces use of AsyncMock in Part 3
-- `.github/workflows/improve-tests.md` is referenced as a GitHub Agentic Workflow definition — participants can create one as a bonus exercise
+- `notify_customer()` is fully async with httpx.AsyncClient — forces use of AsyncMock in Part 3
+- Part 5b references the GitHub Copilot coding agent — participants can try assigning Copilot to an issue as a bonus exercise
 - `datetime.datetime.now()` in `Order.__post_init__` is an intentional testability trap — ask participants how they'd mock it (answer: inject `created_at` explicitly in tests, or monkeypatch `datetime.datetime`)

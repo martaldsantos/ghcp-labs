@@ -6,7 +6,7 @@ All 5 code paths of process_order() covered.
 
 import sqlite3
 from unittest.mock import patch, MagicMock
-import requests
+import httpx
 from order_processor import Order, OrderItem, process_order
 
 
@@ -40,7 +40,7 @@ class TestProcessOrder:
         assert any("at least one item" in e for e in result["errors"])
 
     # Path 2: DB save failure (no table → INSERT fails)
-    @patch("order_processor.requests.post")
+    @patch("order_processor.httpx.post")
     def test_db_save_failure(self, mock_post):
         order = make_test_order()
         empty_conn = sqlite3.connect(":memory:")  # no table created
@@ -50,10 +50,11 @@ class TestProcessOrder:
         empty_conn.close()
 
     # Path 3: successful payment
-    @patch("order_processor.requests.post")
+    @patch("order_processor.httpx.post")
     def test_successful_payment(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"id": "PAY-123"}
+        mock_resp.raise_for_status.return_value = None
         mock_post.return_value = mock_resp
 
         order = make_test_order()
@@ -66,10 +67,13 @@ class TestProcessOrder:
         conn.close()
 
     # Path 4: payment HTTP error (402)
-    @patch("order_processor.requests.post")
+    @patch("order_processor.httpx.post")
     def test_payment_http_error(self, mock_post):
         mock_resp = MagicMock()
-        mock_resp.raise_for_status.side_effect = requests.HTTPError("402 Payment Required")
+        mock_request = MagicMock()
+        mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "402 Payment Required", request=mock_request, response=mock_resp
+        )
         mock_post.return_value = mock_resp
 
         order = make_test_order()
@@ -81,9 +85,9 @@ class TestProcessOrder:
         conn.close()
 
     # Path 5: payment timeout
-    @patch("order_processor.requests.post")
+    @patch("order_processor.httpx.post")
     def test_payment_timeout(self, mock_post):
-        mock_post.side_effect = requests.Timeout()
+        mock_post.side_effect = httpx.TimeoutException("timed out")
 
         order = make_test_order()
         conn = setup_db()

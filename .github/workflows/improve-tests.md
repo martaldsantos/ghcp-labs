@@ -11,7 +11,7 @@ triggers:
 steps:
   - name: Run coverage analysis
     run: |
-      cd lab1
+      cd lab02
       pip install -r requirements.txt
       pytest tests/ --cov=order_processor --cov-report=json --cov-report=term-missing -v
 
@@ -33,5 +33,5 @@ steps:
 
   - name: Verify coverage improved
     run: |
-      cd lab1
+      cd lab02
       pytest tests/ --cov=order_processor --cov-fail-under=90 -v

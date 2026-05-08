@@ -2,7 +2,7 @@
 Part 1 — Mocking HTTP & DB (10 min)
 ====================================
 Goal: Test all 5 code paths in process_order() by mocking the payment
-API (requests.post) and using an in-memory SQLite database.
+API (httpx.post) and using an in-memory SQLite database.
 
 Code paths to cover:
   1. Invalid order         → {"status": "invalid", "errors": [...]}
@@ -12,15 +12,15 @@ Code paths to cover:
   5. Payment timeout       → {"status": "payment_timeout"}
 
 Hints (try on your own first!):
-  - Patch at the import location: @patch("order_processor.requests.post")
-  - For raise_for_status on 402: mock_resp.raise_for_status.side_effect = requests.HTTPError("402")
-  - For timeout: mock_post.side_effect = requests.Timeout()
+  - Patch at the import location: @patch("order_processor.httpx.post")
+  - For raise_for_status on 402: mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError("402", request=..., response=...)
+  - For timeout: mock_post.side_effect = httpx.TimeoutException("timed out")
 """
 
 import pytest
 import sqlite3
 from unittest.mock import patch, MagicMock
-import requests
+import httpx
 from order_processor import Order, OrderItem, process_order
 
 
@@ -58,14 +58,14 @@ class TestProcessOrder:
         pytest.skip("TODO: implement this test")
 
     # Path 2: DB save failure
-    @patch("order_processor.requests.post")
+    @patch("order_processor.httpx.post")
     def test_db_save_failure(self, mock_post):
         # TODO: Pass a connection that has NO orders table so the INSERT fails.
         #       Assert status == "error".
         pytest.skip("TODO: implement this test")
 
     # Path 3: successful payment
-    @patch("order_processor.requests.post")
+    @patch("order_processor.httpx.post")
     def test_successful_payment(self, mock_post):
         # TODO: Make mock_post return a response whose .json() is {"id": "PAY-123"}.
         #       Don't forget .raise_for_status should do nothing (default mock).
@@ -73,15 +73,15 @@ class TestProcessOrder:
         pytest.skip("TODO: implement this test")
 
     # Path 4: payment HTTP error (e.g. 402 Payment Required)
-    @patch("order_processor.requests.post")
+    @patch("order_processor.httpx.post")
     def test_payment_http_error(self, mock_post):
-        # TODO: Make .raise_for_status() raise requests.HTTPError("402").
+        # TODO: Make .raise_for_status() raise httpx.HTTPStatusError("402", request=..., response=...).
         #       Assert status == "payment_failed".
         pytest.skip("TODO: implement this test")
 
     # Path 5: payment timeout
-    @patch("order_processor.requests.post")
+    @patch("order_processor.httpx.post")
     def test_payment_timeout(self, mock_post):
-        # TODO: Set mock_post.side_effect = requests.Timeout()
+        # TODO: Set mock_post.side_effect = httpx.TimeoutException("timed out")
         #       Assert status == "payment_timeout".
         pytest.skip("TODO: implement this test")

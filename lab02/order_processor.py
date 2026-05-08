@@ -4,7 +4,7 @@ import os
 import sqlite3
 from dataclasses import dataclass, field
 from typing import Optional
-import requests
+import httpx
 
 
 # ── Domain models ────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ def charge_customer(order: Order, card_token: str) -> dict:
         "reference": order.order_id,
         "customer": order.customer_email,
     }
-    response = requests.post(
+    response = httpx.post(
         f"{PAYMENT_API_URL}/v1/charge",
         json=payload,
         timeout=10,
@@ -126,26 +126,23 @@ def charge_customer(order: Order, card_token: str) -> dict:
 
 # ── Async notification ───────────────────────────────────────────────
 
-import asyncio
-import aiohttp
-
 NOTIFICATION_URL = os.getenv("NOTIFICATION_URL", "https://notify.example.com")
 
 
-async def notify_customer(order: Order, message: str, session: Optional[aiohttp.ClientSession] = None) -> bool:
+async def notify_customer(order: Order, message: str, client: Optional[httpx.AsyncClient] = None) -> bool:
     """Sends async notification. Returns True on success."""
-    _session = session or aiohttp.ClientSession()
+    _client = client or httpx.AsyncClient()
     try:
-        async with _session.post(
+        response = await _client.post(
             f"{NOTIFICATION_URL}/send",
             json={"to": order.customer_email, "body": message, "ref": order.order_id},
-        ) as resp:
-            return resp.status == 200
-    except aiohttp.ClientError:
+        )
+        return response.status_code == 200
+    except httpx.HTTPError:
         return False
     finally:
-        if session is None:
-            await _session.close()
+        if client is None:
+            await _client.aclose()
 
 
 # ── Main orchestration ───────────────────────────────────────────────
@@ -169,7 +166,7 @@ def process_order(order: Order, card_token: str, conn: Optional[sqlite3.Connecti
     try:
         payment = charge_customer(order, card_token)
         return {"status": "ok", "payment_id": payment.get("id"), "total": order.total}
-    except requests.HTTPError as e:
+    except httpx.HTTPStatusError as e:
         return {"status": "payment_failed", "message": str(e)}
-    except requests.Timeout:
+    except httpx.TimeoutException:
         return {"status": "payment_timeout"}
