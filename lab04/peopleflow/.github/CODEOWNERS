@@ -1,0 +1,24 @@
+# Code ownership — determines who must review PRs touching these paths.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: Tech Lead reviews everything not covered below
+*                           @thomas-k
+
+# Auth is security-critical — requires security review
+src/auth/                   @thomas-k @sarah-m
+
+# Shared infrastructure (database, logging, exceptions)
+src/shared/                 @thomas-k @ahmed-r
+
+# Module ownership
+src/employees/              @thomas-k @marco-d
+src/onboarding/             @thomas-k @julia-s
+src/performance/            @thomas-k @julia-s
+
+# Infrastructure and deployment
+Dockerfile                  @ahmed-r
+docker-compose.yml          @ahmed-r
+.github/                    @ahmed-r
+
+# Documentation — anyone on the team can approve
+docs/                       @thomas-k @lisa-p
