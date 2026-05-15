@@ -1,0 +1,20 @@
+{
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "initializeCommand": "if [ ! -d ${localEnv:HOME}/.ssh ]; then mkdir -p ${localEnv:HOME}/.ssh; fi; if [ ! -d ${localEnv:HOME}/.gnupg ]; then mkdir -p ${localEnv:HOME}/.gnupg; chmod 700 ${localEnv:HOME}/.gnupg; fi",
+    "mounts": [
+        "source=${localEnv:HOME}/.gitconfig,target=/root/.gitconfig,type=bind,readonly",
+        "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,readonly",
+        "source=${localEnv:HOME}/.gnupg,target=/root/.gnupg_wsl,type=bind,readonly"
+    ],
+    "postStartCommand": "bash -i -c '(echo \"\"> /root/.gnupg/common.conf;gpg --import ~/.gnupg_wsl/gpg-keys-export.asc || echo \"On WSL host run: gpg --armor --export-secret-keys GPG_KEY_NAME > ~/.gnupg/gpg-keys-export.asc\")'",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.vscode-pylance",
+                "ms-python.debugpy"
+            ]
+        }
+    }
+}
