@@ -36,7 +36,11 @@ This is a realistic supply-chain application that demonstrates GitHub Copilot fe
 
 ## Setup
 
-### 1 — Add the GitHub MCP server
+### 1 — Add an MCP server (choose one)
+
+This lab requires an MCP server to connect agents to your source control platform. Pick the option that matches your environment:
+
+#### Option A — GitHub MCP server
 
 In VS Code open your user or workspace `settings.json` and add:
 
@@ -58,12 +62,47 @@ In VS Code open your user or workspace `settings.json` and add:
 
 Verify the `GITHUB_TOKEN` environment variable is set (it is pre-configured in this dev container). Restart the MCP server via the **MCP: Restart Server** command palette entry, then confirm the `github` server shows a green dot in the MCP panel.
 
+#### Option B — Azure DevOps MCP server
+
+If your team works in Azure DevOps, configure the ADO MCP server instead:
+
+```jsonc
+{
+  "mcp": {
+    "servers": {
+      "azure-devops": {
+        "command": "npx",
+        "args": ["-y", "@nicepkg/azure-devops-mcp"],
+        "env": {
+          "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-org",
+          "AZURE_DEVOPS_PAT": "${env:AZURE_DEVOPS_PAT}"
+        }
+      }
+    }
+  }
+}
+```
+
+Set the `AZURE_DEVOPS_PAT` environment variable with a Personal Access Token that has **Work Items (Read & Write)**, **Code (Read & Write)**, and **Build (Read)** scopes. Restart the MCP server and confirm `azure-devops` shows a green dot.
+
+> **Note:** When using Azure DevOps, substitute "issues" with "work items" and "PRs" with "pull requests in Azure Repos" throughout the exercises. The HVE Core extension ships with dedicated ADO agents that activate automatically when ADO MCP tools are available.
+
 ### 2 — Fork & clone the exercise repo
+
+#### GitHub path
 
 ```bash
 # Fork via GitHub CLI then clone your fork
 gh repo fork colindembovsky/octocat-supply-copilot-demo --clone --remote
 cd octocat-supply-copilot-demo
+```
+
+#### Azure DevOps path
+
+```bash
+# Clone your team's ADO repo
+git clone https://dev.azure.com/your-org/your-project/_git/your-repo
+cd your-repo
 ```
 
 Open the cloned folder in VS Code (`code .`). This is the codebase you will research, modify, and raise PRs against for the rest of the lab.
