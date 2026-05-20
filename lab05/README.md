@@ -68,10 +68,12 @@ cd octocat-supply-copilot-demo
 
 Open the cloned folder in VS Code (`code .`). This is the codebase you will research, modify, and raise PRs against for the rest of the lab.
 
-### 3 — Confirm HVE Core is active
+### 3 — Install HVE Core
 
-Open the Extensions view and verify **HVE Core** is installed and enabled. You should see HVE agents available in the Chat agent picker (`@hve`).
 
+Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`), search for **HVE Core All** (publisher: `ise-hve-essentials`), and install it. Once installed, you should see HVE agents available in the Chat agent picker (`@hve`).
+
+![alt text](image.png)
 ---
 
 ## Part 1 — Demo: octocat-supply-copilot-demo (15 min)
@@ -157,7 +159,7 @@ Two extensions are available — pick one:
 **VS Code:**
 1. Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`).
 2. Search **HVE Core** (publisher: `ise-hve-essentials`) and click **Install**.
-3. Open Copilot Chat (`Ctrl+Alt+I`) and type `@` — HVE agents appear in the picker immediately.
+
 
 **GitHub Copilot CLI (alternative):**
 ```bash
@@ -177,6 +179,27 @@ copilot plugin install hve-core@hve-core
 | `memory` | All | Persists agent findings across sessions so context is not lost between conversations |
 
 See the full [Agents Reference](https://github.com/microsoft/hve-core/blob/main/.github/CUSTOM-AGENTS.md) for all 49 agents.
+
+### Copilot CLI `/research` for RPI tasks
+
+The **GitHub Copilot CLI** includes a built-in [`/research` slash command](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/research) purpose-built for the Research phase of RPI workflows. Unlike normal chat (optimized for quick answers), `/research` activates a specialized agent that searches your codebase, organization repos, and the web to produce a comprehensive Markdown report with citations.
+
+**Usage:**
+```bash
+copilot
+/research How is the inventory service implemented in this repo?
+```
+You should see something like this:
+
+![alt text](image-1.png)
+
+**Why it matters for RPI:**
+- **Depth over speed** — produces exhaustive reports (hundreds of lines) with architecture diagrams, code snippets, and citations.
+- **Works across repositories** — searches your org's private repos, public repos, and the web; not limited to local files.
+- **Permanent artifacts** — reports are saved as Markdown files you can share via `/share gist research` or `/share file research`.
+- **Autonomous operation** — the agent never interrupts with clarifying questions; it documents assumptions in a "Confidence Assessment" section.
+
+> **Tip:** Use `/research` before starting the Plan phase to gather context the agent can reference. Save the output as a gist or file to seed your planning session.
 
 ### Your tasks
 
@@ -238,7 +261,8 @@ The **Coding Agent** is the highest-autonomy mode: given a GitHub Issue, it auto
    - Read the relevant source files and tests in the forked repo
    - Implement the low-stock alert logic
    - Write or update tests
-   - Open a draft PR linked to the issue
+   - Open a draft PR linked to the issue - Open and check what is being planned and completed.
+   Should take around 5 minutes to run
 
 4. **Review and approve.** When the PR appears:
    - Use `@hve /pr-reviewer` to review it
@@ -264,16 +288,12 @@ The Coding Agent collapses the Research → Plan → Implement loop into a **sin
 - ✅ Used MCP tools to ground agents in live repository data
 - ✅ Drove a real issue end-to-end with the HVE `rpi-agent` (Research → Plan → Implement)
 - ✅ Ran the Coding Agent autonomously: issue → implementation → PR → review
-
-### What's Next
-
-In **Lab 06**, you'll shift focus to security. The agent reviews `expense_tracker.py` for vulnerabilities and applies fixes autonomously — with human checkpoints at each critical decision.
-
 ---
 
 ## Reference
 
 - [GitHub MCP server](https://github.com/modelcontextprotocol/servers/tree/main/src/github)
 - [HVE Core extension](https://marketplace.visualstudio.com/items?itemName=ise-hve-essentials.hve-core)
+- [Copilot CLI `/research` command](https://docs.github.com/en/copilot/concepts/agents/copilot-cli/research)
 - [octocat-supply-copilot-demo](https://github.com/colindembovsky/octocat-supply-copilot-demo)
 - [GitHub Copilot Coding Agent docs](https://docs.github.com/en/copilot/using-github-copilot/using-copilot-coding-agent)
