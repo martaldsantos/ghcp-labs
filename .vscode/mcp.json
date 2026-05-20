@@ -1,4 +1,3 @@
-[servers] section for GitHub MCP
 {
 	"servers": {
 		"github": {
@@ -9,7 +8,7 @@
 			}
 		}
 	}
-}
+},
 {
 	"servers": {
 		"microsoftdocs/mcp": {
