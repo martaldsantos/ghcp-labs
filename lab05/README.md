@@ -71,7 +71,7 @@ Open the cloned folder in VS Code (`code .`). This is the codebase you will rese
 ### 3 — Install HVE Core
 
 
-Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`), search for **HVE Core All** (publisher: `ise-hve-essentials`), and install it. Once installed, you should see HVE agents available in the Chat agent picker (`@hve`).
+Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`), search for **HVE Core All** (publisher: `ise-hve-essentials`), and install it. Once installed, you should see HVE agents available in the Chat agent picker.
 
 ![alt text](image.png)
 ---
@@ -205,7 +205,6 @@ You should see something like this:
 
 1. **Research the issue with `rpi-agent`.** In Chat with the GitHub MCP server active:
    ```
-   @hve /rpi-agent
    Issue #<number> in my fork of octocat-supply-copilot-demo.
    Fetch the issue and all relevant source files via MCP.
    Research the problem thoroughly, produce a detailed implementation plan,
@@ -265,7 +264,7 @@ The **Coding Agent** is the highest-autonomy mode: given a GitHub Issue, it auto
    Should take around 5 minutes to run
 
 4. **Review and approve.** When the PR appears:
-   - Use `@hve /pr-reviewer` to review it
+   - Use `Pr Reviewer` Agent to review it
    - Request any changes via PR comments — the Coding Agent will respond and push updates
    - Approve and merge when satisfied
 
