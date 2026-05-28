@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Lab generated outputs (participants generate these themselves)
+lab06/evidence/
+
+# Editor / OS
+.DS_Store
+.vscode/settings.json
+*.swp

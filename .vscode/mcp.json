@@ -1,43 +1,97 @@
 {
-	"servers": {
-		"github": {
-			"type": "http",
-			"url": "https://api.githubcopilot.com/mcp/",
-			"headers": {
-				"X-MCP-Toolsets": "default,copilot_spaces"
-			}
-		}
-	}
-},
-{
-	"servers": {
-		"microsoftdocs/mcp": {
-			"type": "http",
-			"url": "https://learn.microsoft.com/api/mcp",
-			"gallery": "https://api.mcp.github.com",
-			"version": "1.0.0"
-		},
-		"io.github.github/github-mcp-server": {
-			"type": "stdio",
-			"command": "docker",
-			"args": [
-				"run",
-				"-i",
-				"--rm",
-				"-e",
-				"GITHUB_PERSONAL_ACCESS_TOKEN=${input:token}",
-				"ghcr.io/github/github-mcp-server:1.0.4"
-			],
-			"gallery": "https://api.mcp.github.com",
-			"version": "1.0.4"
-		}
-	},
-	"inputs": [
-		{
-			"id": "token",
-			"type": "promptString",
-			"description": "",
-			"password": true
-		}
-	]
+  "servers": {
+    "jira": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/.jira-mcp/build/index.js"
+      ],
+      "env": {
+        "JIRA_URL": "${input:jiraUrl}",
+        "JIRA_API_MAIL": "${input:jiraMail}",
+        "JIRA_API_KEY": "${input:jiraApiKey}"
+      }
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "X-MCP-Toolsets": "default,copilot_spaces"
+      }
+    },
+    "microsoftdocs/mcp": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp",
+      "gallery": "https://api.mcp.github.com",
+      "version": "1.0.0"
+    },
+    "azure-devops": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tiberriver256/mcp-server-azure-devops"
+      ],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "${input:adoOrgUrl}",
+        "AZURE_DEVOPS_AUTH_METHOD": "pat",
+        "AZURE_DEVOPS_PAT": "${input:adoPat}",
+        "AZURE_DEVOPS_DEFAULT_PROJECT": "${input:adoProject}"
+      }
+    },
+    "io.github.github/github-mcp-server": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN=${input:token}",
+        "ghcr.io/github/github-mcp-server:1.0.4"
+      ],
+      "gallery": "https://api.mcp.github.com",
+      "version": "1.0.4"
+    }
+  },
+  "inputs": [
+    {
+      "id": "jiraUrl",
+      "type": "promptString",
+      "description": "Jira site URL"
+    },
+    {
+      "id": "jiraMail",
+      "type": "promptString",
+      "description": "Jira account email"
+    },
+    {
+      "id": "jiraApiKey",
+      "type": "promptString",
+      "description": "Jira API token",
+      "password": true
+    },
+    {
+      "id": "adoOrgUrl",
+      "type": "promptString",
+      "description": "Azure DevOps organization URL (e.g. https://dev.azure.com/your-org)"
+    },
+    {
+      "id": "adoProject",
+      "type": "promptString",
+      "description": "Azure DevOps default project name"
+    },
+    {
+      "id": "adoPat",
+      "type": "promptString",
+      "description": "Azure DevOps Personal Access Token",
+      "password": true
+    },
+    {
+      "id": "token",
+      "type": "promptString",
+      "description": "GitHub Personal Access Token",
+      "password": true
+    }
+  ]
 }
