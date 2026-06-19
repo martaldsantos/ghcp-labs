@@ -256,13 +256,17 @@ This is the value of context engineering: the same AI, dramatically different us
 
 A Space can go further than static docs — it can call live tools via MCP, giving it access to real issues, PRs, and repo data at query time.
 
-1. Open your Space at [github.com/copilot/spaces](https://github.com/copilot/spaces)
-2. Go to **Settings** → **Integrations** (or **Tools**)
-3. Select **Add MCP Server** and choose **GitHub**
-4. Authenticate with the same Personal Access Token you created in Task 3a (`repo` and `read:org` scopes)
-5. Save and return to your Space
+> [!NOTE]
+> The MCP connection you set up in VS Code (Task 3a) only applies to your local editor. Spaces run on the web and need their own separate MCP connection — even if you've already connected GitHub MCP in VS Code.
 
-(or just ask Copilot Chat to do it for you)
+1. Open your Space at [github.com/copilot/spaces](https://github.com/copilot/spaces) and select your Space.
+2. Click the **Install MCP** button in the top-right corner of the Space.
+3. Search for **GitHub** and select the official GitHub MCP server.
+4. When prompted, paste the Personal Access Token you created in Task 3a (needs `repo` and `read:org` scopes).
+5. Click **Save** and return to your Space chat.
+
+> [!TIP]
+> You can also ask Copilot Chat inside the Space: *"Add the GitHub MCP server to this Space"* and it will walk you through the steps.
 
 Once connected, your Space can answer questions using live GitHub data — not just the static files you uploaded. Try:
 

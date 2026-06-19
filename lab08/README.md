@@ -341,7 +341,7 @@ Congratulations — you've wired up the full loop:
 | **04** Context Engineering | Standards | Human configures, Copilot follows |
 | **05** Code Review & Refactoring | Review | Human asks, Agent researches |
 | **06** Agent Mode | Code+Test+Debug | Human approves, Agent implements |
-| **07** Security in the SDLC | Security Gate | Agent scans and enforces |
+| **07** Release Workflow and Infrastructure as Code | Integration → Deployment → Release | Human reviews, Copilot automates |
 | **08** The Agentic SDLC Loop | Full Loop | Agent runs autonomously |
 
 ### The Progression

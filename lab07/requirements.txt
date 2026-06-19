@@ -1,2 +1,4 @@
 pytest
 bcrypt
+pyyaml
+requests==2.18.0

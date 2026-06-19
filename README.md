@@ -25,10 +25,10 @@ Lab 08:     Copilot as a PIPELINE     → the loop runs itself
 | 02 | [Testing with Copilot](lab02/) | Test | 🟢 Human directs, Copilot generates | `lab02/` |
 | 03 | [Debugging & Troubleshooting](lab03/) | Debug | 🟡 Human points, Copilot fixes | `lab03/` |
 | 04 | [Context Engineering](lab04/) | Cross-cutting | 🟡 Human configures, Copilot follows | `lab04/` |
-| 05 | [Code Review & Refactoring](lab05/) | Review | 🟠 Human asks, Agent researches | `lab05/` |
-| 06 | [Agent Mode](lab06/) | Code+Test+Debug | 🔴 Human approves, Agent implements | `lab06/` |
-| 07 | [Security in the SDLC](lab07/) | Security Gate | 🔴 Agent scans and enforces | `lab07/` |
-| 08 | [The Agentic SDLC Loop](lab08/) | Full Loop | 🔴🔴 Agent runs the full loop | `lab08/` |
+| 05 | [RPI Workflow: GitHub MCP, HVE & Coding Agent](lab05/) | Review | 🟠 Human asks, Agent researches | `lab05/` |
+| 06 | [MCP Expansion for Your SDLC](lab06/) | Code+Test+Debug | 🔴 Human approves, Agent implements | `lab06/` |
+| 07 | [Release Workflow and Infrastructure as Code](lab07/) | Integration → Deployment → Release | 🟡 Human reviews, Copilot automates | `lab07/` |
+| 08 | [The Agentic SDLC Loop (Capstone)](lab08/) | Full Loop | 🔴🔴 Agent runs the full loop | `lab08/` |
 
 ---
 

@@ -165,10 +165,10 @@ Expected: your 5 stories listed as To Do.
 
 **Track B:**
 ```text
-Using Azure DevOps MCP, list all work items in my project that are in To Do state.
+Using Azure DevOps MCP, list all work items in my project that are in New state.
 Return the ID, title, and state for each.
 ```
-Expected: your 5 stories listed as To Do.
+Expected: your 5 stories listed as New.
 
 ---
 
@@ -199,7 +199,7 @@ For each issue return the key, summary, and status.
 
 **Track B:**
 ```text
-List all work items in my project with state "To Do".
+List all work items in my project with state "New".
 Return ID, title, and state for each.
 ```
 
