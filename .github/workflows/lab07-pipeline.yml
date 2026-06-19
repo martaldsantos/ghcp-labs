@@ -14,12 +14,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14.3'
-      - run: pip install -r lab07/requirements.txt
       - name: Generate SBOM (CycloneDX)
+        working-directory: lab07
         run: |
           pip install cyclonedx-bom
-          python -m cyclonedx_py requirements \
-            -i lab07/requirements.txt > lab07/sbom.xml
+          python -m cyclonedx_py requirements -i requirements.txt > sbom.xml
       - uses: actions/upload-artifact@v4
         with: { name: sbom, path: lab07/sbom.xml }
 
