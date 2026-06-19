@@ -1,0 +1,117 @@
+# Docker Compose for Lab07 reminder engine + PostgreSQL
+# Production-oriented defaults:
+# - Health-gated startup order
+# - Explicit restart policies
+# - Persistent named volumes
+# - Custom bridge network isolation
+# - Required env var checks via ${VAR:?error}
+
+services:
+  # Python reminder engine service.
+  # Assumes the app is containerized with a local Dockerfile and exposes port 8000.
+  reminder-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lab07-reminder-engine:${REMINDER_IMAGE_TAG:-v0.1.0}
+    init: true
+    restart: on-failure:5
+    security_opt:
+      - no-new-privileges:true
+
+    # Fail fast if critical variables are not provided.
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: INFO
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      DB_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
+
+    # Start only when DB has passed health checks.
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    # Expose reminder engine to host (adjust if your app uses a different port).
+    ports:
+      - "8000:8000"
+
+    # Persist application runtime data (queues, exports, local state).
+    volumes:
+      - reminder_data:/app/data
+
+    # Keep service communication inside a dedicated bridge network.
+    networks:
+      - reminder_net
+
+    # Health check verifies local TCP listener on port 8000.
+    # Replace with an HTTP health endpoint check if your app provides one.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import socket,sys;s=socket.socket();s.settimeout(3);s.connect(('127.0.0.1',8000));s.close();sys.exit(0)\" || exit 1"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # Graceful shutdown and bounded logs to reduce operational risk.
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PostgreSQL database service for reminder persistence.
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+    # Required DB bootstrap configuration.
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+
+    # Persist database files across container restarts/redeploys.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # Internal network only; app talks to DB via service name 'postgres'.
+    networks:
+      - reminder_net
+
+    # Native Postgres readiness probe.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:?Set POSTGRES_USER in .env} -d ${POSTGRES_DB:?Set POSTGRES_DB in .env} -h 127.0.0.1 || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    # Keep DB private unless you explicitly need host access.
+    # Uncomment for local admin/debugging only:
+    # ports:
+    #   - "5432:5432"
+
+# Named volumes for persistent state.
+volumes:
+  postgres_data:
+  reminder_data:
+
+# Dedicated bridge network for service-to-service communication.
+networks:
+  reminder_net:
+    driver: bridge
