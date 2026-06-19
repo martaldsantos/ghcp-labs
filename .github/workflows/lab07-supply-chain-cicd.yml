@@ -1,0 +1,105 @@
+name: Lab07 Supply-Chain CI/CD
+
+on:
+  push:
+    branches:
+      - lab07/LAB07
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r lab07/requirements.txt
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          pip install cyclonedx-bom
+          python -m cyclonedx_py requirements -i lab07/requirements.txt > lab07/sbom.xml
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: lab07/sbom.xml
+
+  scan:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: lab07
+
+      - name: Run pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r lab07/requirements.txt --format=json -o lab07/cve-report.json
+
+      - name: Upload CVE report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cve-report
+          path: lab07/cve-report.json
+
+      - name: Surface scan failure
+        if: failure()
+        run: |
+          echo "::error::Supply-chain scan failed. Review cve-report.json for details."
+          exit 1
+
+  validate-iac:
+    runs-on: ubuntu-latest
+    needs: scan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Bicep if present
+        if: hashFiles('lab07/main.bicep') != ''
+        run: |
+          az bicep install
+          az bicep build --file lab07/main.bicep
+
+      - name: Validate Terraform if present
+        if: hashFiles('lab07/main.tf') != ''
+        run: |
+          cd lab07
+          terraform init -backend=false
+          terraform validate
+
+      - name: Surface IaC validation failure
+        if: failure()
+        run: echo "::error::IaC validation failed"
+
+  manual-approval:
+    runs-on: ubuntu-latest
+    needs: validate-iac
+    environment: production
+    steps:
+      - name: Await manual approval
+        run: echo 'All gates passed. Pending approval.'
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: manual-approval
+    steps:
+      - name: Dry-run deploy command
+        run: echo 'Would run: az deployment group create --what-if / terraform plan'
