@@ -1,0 +1,309 @@
+version: '3.8'
+
+# Production-ready Docker Compose configuration for Reminder Engine
+# This configuration includes health checks, resource limits, and proper networking
+
+services:
+  # ============================================================================
+  # Reminder Engine Service
+  # Python application that processes and sends reminders
+  # ============================================================================
+  reminder-engine:
+    # Use a specific version tag for reproducibility (never use 'latest' in production)
+    image: reminder-engine:1.0.0
+    
+    # Build configuration (uncomment if building locally)
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   target: production
+    
+    # Container name for easier identification
+    container_name: reminder-engine-app
+    
+    # Restart policy for production reliability
+    # 'unless-stopped' ensures container restarts on failure but respects manual stops
+    restart: unless-stopped
+    
+    # Environment variables for application configuration
+    # In production, use Docker secrets or external secret management (HashiCorp Vault, AWS Secrets Manager)
+    environment:
+      # Database connection parameters
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=reminder_db
+      - DB_USER=reminder_user
+      # WARNING: For production, use Docker secrets instead of environment variables
+      # See: https://docs.docker.com/engine/swarm/secrets/
+      - DB_PASSWORD=SecurePassword123!
+      
+      # Application configuration
+      - APP_ENV=production
+      - LOG_LEVEL=info
+      - TZ=UTC
+      
+      # Python-specific settings
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    
+    # Port mapping (HOST:CONTAINER)
+    # Expose only necessary ports; avoid mapping to 0.0.0.0 in production if possible
+    ports:
+      - "8000:8000"
+    
+    # Volume mounts for data persistence and configuration
+    volumes:
+      # Application logs (named volume for better management)
+      - app-logs:/app/logs
+      
+      # Application data (if needed)
+      - app-data:/app/data
+      
+      # Read-only configuration files (use bind mount for config)
+      # - ./config:/app/config:ro
+    
+    # Network configuration
+    networks:
+      - reminder-network
+    
+    # Service dependencies with health check conditions
+    # Container won't start until PostgreSQL is healthy
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    # Health check configuration
+    # Ensures the application is responding and ready to handle requests
+    healthcheck:
+      # Check if the application's health endpoint responds
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      
+      # Alternative health check using Python (if curl is not available in image)
+      # test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health').raise_for_status()"]
+      
+      interval: 30s          # Check every 30 seconds
+      timeout: 10s           # Wait up to 10 seconds for a response
+      retries: 3             # Retry 3 times before marking unhealthy
+      start_period: 40s      # Grace period for application startup
+    
+    # Resource limits to prevent resource exhaustion
+    # Adjust based on your application's actual requirements
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'        # Maximum 1 CPU core
+          memory: 512M       # Maximum 512MB RAM
+        reservations:
+          cpus: '0.25'       # Guaranteed 0.25 CPU core
+          memory: 256M       # Guaranteed 256MB RAM
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"      # Maximum log file size before rotation
+        max-file: "3"        # Keep 3 rotated log files
+        labels: "service,environment"
+        env: "APP_ENV"
+
+  # ============================================================================
+  # PostgreSQL Database Service
+  # Persistent data storage for reminder engine
+  # ============================================================================
+  postgres:
+    # Use official PostgreSQL image with specific version
+    # Alpine variant for smaller image size
+    image: postgres:15-alpine
+    
+    container_name: reminder-postgres
+    
+    # Restart policy for database reliability
+    restart: unless-stopped
+    
+    # Environment variables for PostgreSQL initialization
+    environment:
+      # Database configuration
+      - POSTGRES_DB=reminder_db
+      - POSTGRES_USER=reminder_user
+      - POSTGRES_PASSWORD=SecurePassword123!
+      
+      # PostgreSQL performance tuning (adjust based on available resources)
+      - POSTGRES_SHARED_BUFFERS=256MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=1GB
+      - POSTGRES_MAX_CONNECTIONS=100
+      
+      # Locale settings
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8
+    
+    # Port mapping (optional - only expose if external access is needed)
+    # For production, consider removing this and accessing only through the app service
+    ports:
+      - "5432:5432"
+    
+    # Volume mounts for data persistence
+    volumes:
+      # PostgreSQL data directory (named volume for data persistence)
+      # This ensures data survives container restarts and removals
+      - postgres-data:/var/lib/postgresql/data
+      
+      # Initialization scripts (executed on first container start)
+      # - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      
+      # Custom PostgreSQL configuration (optional)
+      # - ./postgres.conf:/etc/postgresql/postgresql.conf:ro
+      
+      # Database backups directory (for automated backups)
+      # - ./backups:/backups
+    
+    # Network configuration
+    networks:
+      - reminder-network
+    
+    # Health check configuration
+    # Ensures PostgreSQL is ready to accept connections
+    healthcheck:
+      # Use pg_isready to check if PostgreSQL is accepting connections
+      test: ["CMD-SHELL", "pg_isready -U reminder_user -d reminder_db"]
+      
+      interval: 10s          # Check every 10 seconds
+      timeout: 5s            # Wait up to 5 seconds for a response
+      retries: 5             # Retry 5 times before marking unhealthy
+      start_period: 30s      # Grace period for PostgreSQL initialization
+    
+    # Resource limits for database
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'        # Maximum 1 CPU core
+          memory: 1G         # Maximum 1GB RAM
+        reservations:
+          cpus: '0.5'        # Guaranteed 0.5 CPU core
+          memory: 512M       # Guaranteed 512MB RAM
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Security options (optional but recommended)
+    # Run container with minimal capabilities
+    # security_opt:
+    #   - no-new-privileges:true
+    
+    # Use tmpfs for temporary PostgreSQL data (improved performance)
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+# ==============================================================================
+# Named Volumes
+# Managed by Docker, providing better portability and backup capabilities
+# Use 'docker volume ls' to list volumes
+# Use 'docker volume inspect <volume-name>' for details
+# ==============================================================================
+volumes:
+  # PostgreSQL data volume
+  # Contains all database data, ensures persistence across container lifecycle
+  postgres-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgres
+    # Alternatively, use default Docker volume without bind mount:
+    # postgres-data:
+  
+  # Application logs volume
+  app-logs:
+    driver: local
+  
+  # Application data volume
+  app-data:
+    driver: local
+
+# ==============================================================================
+# Networks
+# Custom bridge network for service-to-service communication
+# Provides DNS resolution (services can reach each other by service name)
+# ==============================================================================
+networks:
+  # Custom bridge network for the reminder engine stack
+  reminder-network:
+    driver: bridge
+    
+    # Network configuration options
+    driver_opts:
+      # MTU (Maximum Transmission Unit) size
+      com.docker.network.driver.mtu: 1500
+    
+    # IP address management (optional)
+    ipam:
+      driver: default
+      config:
+        # Define subnet for the network
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1
+    
+    # Enable IPv6 (optional)
+    # enable_ipv6: true
+    
+    # Internal network (no external access) - uncomment for added security
+    # internal: true
+
+# ==============================================================================
+# Production Deployment Notes
+# ==============================================================================
+# 1. SECRETS MANAGEMENT:
+#    - Never commit passwords to version control
+#    - Use Docker secrets: docker secret create db_password password.txt
+#    - Or use external secret management (Vault, AWS Secrets Manager)
+#
+# 2. ENVIRONMENT-SPECIFIC CONFIGURATION:
+#    - Use .env file for environment variables: docker-compose --env-file .env up
+#    - Create separate compose files: docker-compose.prod.yml, docker-compose.dev.yml
+#    - Override with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+#
+# 3. MONITORING & OBSERVABILITY:
+#    - Add Prometheus exporters for metrics collection
+#    - Integrate with centralized logging (ELK, Loki, CloudWatch)
+#    - Set up alerting for service health and resource usage
+#
+# 4. BACKUP STRATEGY:
+#    - Implement automated database backups
+#    - Store backups in separate location (S3, Azure Blob)
+#    - Test backup restoration regularly
+#
+# 5. SECURITY HARDENING:
+#    - Run containers as non-root users
+#    - Use read-only root filesystems where possible
+#    - Implement network policies
+#    - Scan images for vulnerabilities (Trivy, Clair)
+#    - Enable Docker Content Trust for image signing
+#
+# 6. HIGH AVAILABILITY:
+#    - Use Docker Swarm or Kubernetes for orchestration
+#    - Implement database replication (PostgreSQL streaming replication)
+#    - Use load balancers for application tier
+#
+# 7. RESOURCE OPTIMIZATION:
+#    - Monitor actual resource usage and adjust limits
+#    - Use multi-stage builds to minimize image size
+#    - Implement caching strategies
+#
+# 8. DEPLOYMENT COMMANDS:
+#    - Start services: docker-compose up -d
+#    - View logs: docker-compose logs -f [service-name]
+#    - Scale services: docker-compose up -d --scale reminder-engine=3
+#    - Stop services: docker-compose down
+#    - Remove volumes: docker-compose down -v (WARNING: deletes data)
+#
+# 9. HEALTH MONITORING:
+#    - Check service health: docker-compose ps
+#    - Inspect service: docker inspect <container-name>
+#    - Monitor resources: docker stats
+#
+# 10. DATABASE MIGRATIONS:
+#    - Run migrations before starting app: docker-compose run --rm reminder-engine python manage.py migrate
+#    - Or use init containers in Kubernetes
