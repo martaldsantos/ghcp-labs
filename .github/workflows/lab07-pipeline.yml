@@ -19,7 +19,7 @@ jobs:
         run: |
           pip install cyclonedx-bom
           python -m cyclonedx_py requirements -i requirements.txt > sbom.xml
-      - uses: actions/upload-artifact@v8
+      - uses: actions/upload-artifact@v7
         with: { name: sbom, path: lab07/sbom.xml }
 
   scan:
@@ -37,7 +37,7 @@ jobs:
             --format=json -o lab07/cve-report.json
       - name: Upload CVE report
         if: always()
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v7
         with: { name: cve-report, path: lab07/cve-report.json }
       - name: Surface CVE result
         if: always()
