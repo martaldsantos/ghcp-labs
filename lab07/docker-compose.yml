@@ -1,0 +1,152 @@
+# Docker Compose stack for the reminder engine + PostgreSQL.
+# This file is production-oriented for local/container deployments:
+# - explicit health checks
+# - restart policies
+# - startup validation and retry logic
+# - isolated bridge network
+
+services:
+  # Python reminder engine service.
+  reminder-engine:
+    image: python:3.12-slim
+    container_name: reminder-engine
+    working_dir: /workspace
+    restart: unless-stopped
+
+    # Ensure the app only starts after PostgreSQL passes health checks.
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    # Environment required for service-to-service DB communication.
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: reminder_db
+      DB_USER: reminder_user
+      DB_PASSWORD: ${POSTGRES_PASSWORD?POSTGRES_PASSWORD is required}
+      SCHEDULER_INTERVAL_SECONDS: "60"
+
+    # Mount source as read-only and keep runtime artifacts in a named volume.
+    volumes:
+      - ../:/workspace:ro
+      - reminder_data:/var/lib/reminder-engine
+
+    # Robust startup script with env validation, DB retry/backoff, and looped scheduler.
+    command:
+      - sh
+      - -c
+      - |
+      set -eu;
+      python -m pip install --no-cache-dir -r /workspace/lab06/requirements.txt psycopg[binary];
+      python - <<'PY'
+      import os
+      import sys
+      import time
+      from datetime import datetime, timezone
+
+      import psycopg
+
+      sys.path.insert(0, '/workspace/lab06')
+      from reminder_engine import ReminderPolicy, run_scheduler_cycle
+
+      required = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']
+      missing = [k for k in required if not os.getenv(k)]
+      if missing:
+        raise SystemExit(f'Missing required environment variables: {", ".join(missing)}')
+
+      dsn = (
+        f"host={os.environ['DB_HOST']} "
+        f"port={os.environ['DB_PORT']} "
+        f"dbname={os.environ['DB_NAME']} "
+        f"user={os.environ['DB_USER']} "
+        f"password={os.environ['DB_PASSWORD']}"
+      )
+
+      # Retry DB connection with capped backoff before starting scheduler loop.
+      for attempt in range(1, 11):
+        try:
+          with psycopg.connect(dsn, connect_timeout=3) as conn:
+            with conn.cursor() as cur:
+              cur.execute('SELECT 1;')
+          print('Database connectivity check passed.')
+          break
+        except Exception as exc:
+          wait_seconds = min(2 ** attempt, 30)
+          print(
+            f'Database not ready (attempt {attempt}/10): {exc}. '
+            f'Retrying in {wait_seconds}s...',
+            file=sys.stderr,
+          )
+          time.sleep(wait_seconds)
+      else:
+        raise SystemExit('Database did not become ready after multiple attempts.')
+
+      interval = int(os.getenv('SCHEDULER_INTERVAL_SECONDS', '60'))
+      policy = ReminderPolicy()
+
+      while True:
+        try:
+          result = run_scheduler_cycle(approvals=[], policy=policy, now=datetime.now(timezone.utc))
+          print(
+            'Scheduler cycle completed: '
+            f'evaluated={result.evaluated}, eligible={result.eligible}, '
+            f'attempts={len(result.attempts)}'
+          )
+        except Exception as exc:
+          # Keep process alive and retry next interval to avoid crash loops on transient failures.
+          print(f'Scheduler cycle failed: {exc}', file=sys.stderr)
+        time.sleep(interval)
+      PY
+
+    # Health check validates that DB host is reachable from the app container.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import os,socket; socket.create_connection((os.getenv('DB_HOST','postgres'), int(os.getenv('DB_PORT','5432'))), 3).close()\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+    networks:
+      - reminder-net
+
+  # PostgreSQL database service for persistent reminder data.
+  postgres:
+    image: postgres:16-alpine
+    container_name: reminder-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: reminder_db
+      POSTGRES_USER: reminder_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?POSTGRES_PASSWORD is required}
+    ports:
+      - "5432:5432"
+
+    # Persist database files across container restarts/redeployments.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # Native PostgreSQL readiness check.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reminder_user -d reminder_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    networks:
+      - reminder-net
+
+# Named volumes for durable state.
+volumes:
+  postgres_data:
+  reminder_data:
+
+# Custom bridge network for internal service-to-service communication.
+networks:
+  reminder-net:
+    driver: bridge
